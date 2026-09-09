@@ -21,23 +21,13 @@ from flask import (
 )
 
 # --- Configuration ------------------------------------------------------------
-# Values come from config.py when present, otherwise from the environment.
-# (Early development kept them in config.py; they were later moved to env vars.)
-try:
-    import config as _c
-    DB_HOST = getattr(_c, "DB_HOST", None) or os.environ.get("DB_HOST", "db")
-    DB_NAME = getattr(_c, "DB_NAME", None) or os.environ.get("DB_NAME", "notesapp")
-    DB_USER = getattr(_c, "DB_USER", None) or os.environ.get("DB_USER", "notesapp")
-    DB_PASSWORD = getattr(_c, "POSTGRES_PASSWORD", None) or os.environ.get("POSTGRES_PASSWORD", "notesapp_pg_pw_2024")
-    JWT_SECRET = getattr(_c, "JWT_SECRET", None) or os.environ.get("JWT_SECRET", "s3cr3t")
-    SECRET_KEY = getattr(_c, "SECRET_KEY", None) or os.environ.get("SECRET_KEY", "dev-session-key")
-except ImportError:
-    DB_HOST = os.environ.get("DB_HOST", "db")
-    DB_NAME = os.environ.get("DB_NAME", "notesapp")
-    DB_USER = os.environ.get("DB_USER", "notesapp")
-    DB_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "notesapp_pg_pw_2024")
-    JWT_SECRET = os.environ.get("JWT_SECRET", "s3cr3t")
-    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-session-key")
+# All configuration comes from the environment (set in docker-compose.yml).
+DB_HOST = os.environ.get("DB_HOST", "db")
+DB_NAME = os.environ.get("DB_NAME", "notesapp")
+DB_USER = os.environ.get("DB_USER", "notesapp")
+DB_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "notesapp_pg_pw_2024")
+JWT_SECRET = os.environ.get("JWT_SECRET", "s3cr3t")
+SECRET_KEY = os.environ.get("SECRET_KEY", "dev-session-key")
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
