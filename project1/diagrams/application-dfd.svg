@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="780" viewBox="0 0 1400 780">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#176B75"/></marker></defs>
+<rect width="1400" height="780" fill="white"/>
+<title>Application data flows</title>
+<polyline points="20,125 285,125 285,495 20,495 20,125" fill="none" stroke="#5D6870" stroke-width="2" stroke-dasharray="8 8"/>
+<text x="25" y="520" font-family="Arial" font-size="22" fill="#5D6870">TB3  Comment / markup</text>
+<polyline points="415,105 415,715" fill="none" stroke="#5D6870" stroke-width="2" stroke-dasharray="8 8"/>
+<text x="315" y="76" font-family="Arial" font-size="22" fill="#5D6870">TB1  HTTP boundary</text>
+<polyline points="1000,105 1000,715" fill="none" stroke="#5D6870" stroke-width="2" stroke-dasharray="8 8"/>
+<text x="900" y="76" font-family="Arial" font-size="22" fill="#5D6870">TB2  Database boundary</text>
+<polyline points="270,175 505,175 505,350 590,350" fill="none" stroke="#176B75" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="282" y="158" font-family="Arial" font-size="23" font-weight="bold" fill="#172B3A">F01 / F03</text>
+<polyline points="590,335 540,335 540,245 270,245" fill="none" stroke="#176B75" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="282" y="279" font-family="Arial" font-size="23" font-weight="bold" fill="#172B3A">F02 / F04</text>
+<polyline points="270,385 590,385" fill="none" stroke="#176B75" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="282" y="365" font-family="Arial" font-size="23" font-weight="bold" fill="#172B3A">F01 / F05 / F06</text>
+<polyline points="590,475 505,475 505,450 270,450" fill="none" stroke="#176B75" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="282" y="485" font-family="Arial" font-size="23" font-weight="bold" fill="#172B3A">F02 / F07</text>
+<polyline points="270,590 505,590 505,520 590,520" fill="none" stroke="#176B75" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="282" y="625" font-family="Arial" font-size="23" font-weight="bold" fill="#172B3A">F01 / F08 / F09</text>
+<polyline points="590,550 540,550 540,655 270,655" fill="none" stroke="#176B75" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="282" y="690" font-family="Arial" font-size="23" font-weight="bold" fill="#172B3A">F02 / F10</text>
+<polyline points="860,405 1110,405" fill="none" stroke="#176B75" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="890" y="385" font-family="Arial" font-size="23" font-weight="bold" fill="#172B3A">F11 SQL</text>
+<polyline points="1110,490 860,490" fill="none" stroke="#176B75" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="890" y="525" font-family="Arial" font-size="23" font-weight="bold" fill="#172B3A">F12 Rows</text>
+<rect x="40" y="145" width="230" height="120" fill="white" stroke="#172B3A" stroke-width="2"/>
+<text x="155.0" y="188.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="25" fill="#172B3A">Student</text>
+<text x="155.0" y="222.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="25" fill="#172B3A">browser</text>
+<rect x="40" y="350" width="230" height="120" fill="white" stroke="#172B3A" stroke-width="2"/>
+<text x="155.0" y="393.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="25" fill="#172B3A">Teacher</text>
+<text x="155.0" y="427.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="25" fill="#172B3A">browser</text>
+<rect x="40" y="555" width="230" height="120" fill="white" stroke="#172B3A" stroke-width="2"/>
+<text x="155.0" y="598.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="25" fill="#172B3A">Admin</text>
+<text x="155.0" y="632.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="25" fill="#172B3A">browser</text>
+<rect x="590" y="320" width="270" height="250" fill="#F3F6F7" stroke="#172B3A" stroke-width="2"/>
+<text x="725.0" y="411.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="25" fill="#172B3A">P1 Flask</text>
+<text x="725.0" y="445.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="25" fill="#172B3A">Authentication</text>
+<text x="725.0" y="479.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="25" fill="#172B3A">Grade operations</text>
+<rect x="1110" y="335" width="250" height="220" fill="white" stroke="#172B3A" stroke-width="2"/>
+<text x="1235.0" y="411.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="25" fill="#172B3A">D1 PostgreSQL</text>
+<text x="1235.0" y="445.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="25" fill="#172B3A">Users / classes</text>
+<text x="1235.0" y="479.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="25" fill="#172B3A">Grades / ciphertext</text>
+</svg>

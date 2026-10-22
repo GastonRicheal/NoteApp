@@ -31,6 +31,11 @@ th { font-size: .8rem; text-transform: uppercase; color: #5a6675; }
 .error { color: #b4461f; }
 .small { font-size: .8rem; }
 a.small { margin-left: .5rem; }
+.verification-result { margin: 1.2rem 0; padding: 1rem; border: 1px solid; }
+.verification-result h2 { margin: 0 0 .5rem; }
+.verification-result p { margin: 0; }
+.verification-passed { color: #205d35; background: #edf7ef; border-color: #a3c7ab; }
+.verification-failed { color: #9b251b; background: #fff1ee; border-color: #dfafa8; }
 .classes { list-style: none; padding: 0; }
 .classes li { padding: .3rem 0; border-bottom: 1px solid #eef1f5; }
 pre { background: #0d1117; color: #d7e0ea; padding: .8rem; border-radius: 6px;

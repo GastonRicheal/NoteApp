@@ -1,0 +1,18 @@
+{
+  "review_date": "2026-10-09",
+  "base_commit": "1c83e422429c4b784411701ffd797b5ab5f397dc",
+  "basis": "Current working tree, including the Session 3 AES-GCM comment homework",
+  "sha256": {
+    "web/app.py": "8bd4afcbfdda2d2aaed7be450bb18d10ec2d166290e53d911ad165e5934b90d0",
+    "web/comment_crypto.py": "8e195bb23b1bd14ea1f9ea4521896d8bf9a491a2e921ee31b98bbf6bc274fbcd",
+    "web/migrate_comments.py": "b0ad0549c1c7c8666aa40fec32e98eeb0e3adfe0484b06ca6eee3db5ae764059",
+    "web/Dockerfile": "fd4b2f69844eb948488f092997ef6a895e60cb74ce4a31dfbfeabcc2b06fe186",
+    "web/templates/dashboard.html": "fb83444290c57da0e1700f73df4963e787ca0b32890a811e8814c7d5551e4ab1",
+    "web/templates/teacher.html": "dc2d3597d2f8354962da133e72531fc31e54413656181c477b8ef4c460c4b99e",
+    "web/templates/admin.html": "83d01dbf9d8afbb66c7692316c156949f57052d7120817e161e67aa9a18f22bf",
+    "db/init.sql": "ac2c93c0283cc1dc2c3b5664acc34ba5081bbbbca81bede601505d3717bbc9a2",
+    "docker-compose.yml": "c8b26a176f56fc0e214b275b29c8d17d2287f09e892bf3125c6fef213b9ad192",
+    "docker-compose.https.yml.example": "f26ce68bdb63d5d46348db92dbc43dcd5eafb806e792ddca85584938ac1746c7",
+    ".gitignore": "5e54cf5c99ce3b991d0f610bc597e16a9e1f3d701c62bed16932a84c5619ed45"
+  }
+}

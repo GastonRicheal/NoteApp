@@ -1,0 +1,25 @@
+Review date: 2026-10-09 (Europe/Paris client date)
+Method: read-only inspection of the existing local teaching deployment.
+
+Database command:
+docker compose exec -T db psql -U notesapp -d notesapp -At -c "SELECT 'users', count(*) FROM users UNION ALL SELECT 'classes', count(*) FROM classes UNION ALL SELECT 'notes', count(*) FROM notes UNION ALL SELECT 'encrypted_comments', count(*) FROM notes WHERE comment LIKE 'aesgcm:v1:%'; SELECT 'app_database_role_superuser', rolsuper FROM pg_roles WHERE rolname=current_user;"
+
+Observed output:
+users|35
+classes|4
+notes|60
+encrypted_comments|60
+app_database_role_superuser|t
+
+Container command:
+docker compose exec -T web id
+
+Observed output:
+uid=0(root) gid=0(root) groups=0(root)
+
+Limitations:
+The prefix count establishes storage format counts, not successful authentication
+of every ciphertext. The AES-GCM implementation and prior homework checks provide
+the separate authentication behavior evidence. No attack payloads or load tests
+were executed. A published port is not proof of internet reachability.
+No encryption key bytes or plaintext student records are included here.

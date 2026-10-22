@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h1>Verify a grades export</h1>
+  <p>Upload a downloaded grades CSV to check whether its contents still match this server's HMAC.</p>
+  <p>The file is checked without importing or changing any grades. Maximum file size: 5 MiB.</p>
+  <form method="post" enctype="multipart/form-data" action="{{ url_for('verify_export') }}">
+    <label for="export-file">Grades export</label>
+    <input id="export-file" type="file" name="file" accept=".csv,text/csv" required>
+    <p><button type="submit">Verify file</button></p>
+  </form>
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  {% if result is sameas true %}
+  <div class="verification-result verification-passed" role="status">
+    <h2>CHECK PASSED</h2>
+    <p>The file matches this server's HMAC. Its authenticated bytes have not changed.</p>
+  </div>
+  {% elif result is sameas false %}
+  <div class="verification-result verification-failed" role="alert">
+    <h2>CHECK FAILED</h2>
+    <p>The file was modified, its HMAC is missing or damaged, or it was signed with a different key.</p>
+  </div>
+  {% endif %}
+  <p>Editing a grade, comment, header or line ending will make the original HMAC fail.</p>
+  <p><a href="{{ url_for('teacher') }}">Back to grades</a></p>
+</div>
+{% endblock %}

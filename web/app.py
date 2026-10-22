@@ -15,6 +15,10 @@ import subprocess
 
 import psycopg2
 import psycopg2.extras
+from comment_crypto import CommentDecryptionError, load_comment_cipher
+from export_integrity import (
+    ExportSizeError, ExportVerificationError, MAX_EXPORT_BYTES, load_export_hmac,
+)
 from flask import (
     Flask, request, session, redirect, url_for,
     render_template, Response, jsonify, abort,
@@ -28,9 +32,12 @@ DB_USER = os.environ.get("DB_USER", "notesapp")
 DB_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "notesapp_pg_pw_2024")
 JWT_SECRET = os.environ.get("JWT_SECRET", "s3cr3t")
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-session-key")
+comment_cipher = load_comment_cipher()
+export_hmac = load_export_hmac()
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
+
 
 LOG_FILE = os.environ.get("NOTESAPP_LOG", "/var/log/notesapp/app.log")
 
@@ -52,6 +59,18 @@ def get_db():
     )
     conn.autocommit = True
     return conn
+
+
+def decrypt_note_comment(note):
+    note["comment"] = comment_cipher.decrypt(note["comment"], note["id"])
+    return note
+
+
+@app.errorhandler(CommentDecryptionError)
+def comment_decryption_failed(error):
+    # Fail closed without exposing ciphertext, keys or partially decoded comments.
+    log("comment authentication failed")
+    return jsonify({"error": "Comment data could not be decrypted."}), 500
 
 
 # --- Minimal JWT (deliberately weak) ------------------------------------------
@@ -195,6 +214,7 @@ def dashboard():
     )
     notes = cur.fetchall()
     conn.close()
+    notes = [decrypt_note_comment(note) for note in notes]
     return render_template("dashboard.html", notes=notes, token=session.get("token"))
 
 
@@ -218,6 +238,7 @@ def api_notes(note_id):
     conn.close()
     if not note:
         return jsonify({"error": "not found"}), 404
+    decrypt_note_comment(note)
     note["grade"] = float(note["grade"]) if note["grade"] is not None else None
     return jsonify(note)
 
@@ -241,6 +262,7 @@ def teacher():
     cur.execute("SELECT id, username FROM users WHERE role = 'student' ORDER BY username")
     students = cur.fetchall()
     conn.close()
+    notes = [decrypt_note_comment(note) for note in notes]
     return render_template("teacher.html", classes=classes, notes=notes, students=students)
 
 
@@ -254,20 +276,34 @@ def grades():
     class_id = request.form.get("class_id")
     grade = request.form.get("grade")
     comment = request.form.get("comment", "")
-    conn = get_db()
-    cur = conn.cursor()
     if note_id:
-        cur.execute(
-            "UPDATE notes SET grade = %s, comment = %s WHERE id = %s",
-            (grade, comment, note_id),
-        )
-    else:
-        cur.execute(
-            "INSERT INTO notes (student_id, class_id, grade, comment) "
-            "VALUES (%s, %s, %s, %s)",
-            (student_id, class_id, grade, comment),
-        )
-    conn.close()
+        try:
+            note_id = int(note_id)
+        except ValueError:
+            abort(400)
+    conn = get_db()
+    conn.autocommit = False
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                if note_id:
+                    cur.execute(
+                        "UPDATE notes SET grade = %s, comment = %s WHERE id = %s",
+                        (grade, comment_cipher.encrypt(comment, note_id), note_id),
+                    )
+                else:
+                    # Get the database-generated id inside the same transaction, then bind
+                    # the ciphertext to it. No plaintext comment is inserted even temporarily.
+                    cur.execute(
+                        "INSERT INTO notes (student_id, class_id, grade, comment) "
+                        "VALUES (%s, %s, %s, NULL) RETURNING id",
+                        (student_id, class_id, grade),
+                    )
+                    new_note_id = cur.fetchone()["id"]
+                    cur.execute("UPDATE notes SET comment = %s WHERE id = %s",
+                                (comment_cipher.encrypt(comment, new_note_id), new_note_id))
+    finally:
+        conn.close()
     log(f"grade write by {session.get('username')} note_id={note_id or 'new'}")
     return redirect(url_for("teacher"))
 
@@ -281,7 +317,7 @@ def export_csv():
     cur = conn.cursor()
     if class_id:
         cur.execute(
-            "SELECT u.username AS student, c.name AS class, n.grade, n.comment "
+            "SELECT n.id, u.username AS student, c.name AS class, n.grade, n.comment "
             "FROM notes n JOIN users u ON u.id = n.student_id "
             "JOIN classes c ON c.id = n.class_id WHERE n.class_id = %s "
             "ORDER BY u.username",
@@ -289,21 +325,57 @@ def export_csv():
         )
     else:
         cur.execute(
-            "SELECT u.username AS student, c.name AS class, n.grade, n.comment "
+            "SELECT n.id, u.username AS student, c.name AS class, n.grade, n.comment "
             "FROM notes n JOIN users u ON u.id = n.student_id "
             "JOIN classes c ON c.id = n.class_id ORDER BY c.name, u.username"
         )
     rows = cur.fetchall()
     conn.close()
-    buf = io.StringIO()
-    writer = csv.writer(buf)
+    rows = [decrypt_note_comment(row) for row in rows]
+    buf = io.StringIO(newline="")
+    writer = csv.writer(buf, lineterminator="\r\n")
     writer.writerow(["student", "class", "grade", "comment"])
     for r in rows:
         writer.writerow([r["student"], r["class"], r["grade"], r["comment"]])
-    return Response(
-        buf.getvalue(), mimetype="text/csv",
-        headers={"Content-Disposition": "attachment; filename=grades.csv"},
-    )
+    try:
+        signed_export = export_hmac.sign_csv(buf.getvalue().encode("utf-8"))
+    except ExportSizeError as error:
+        return str(error), 413
+    return Response(signed_export, mimetype="text/csv", headers={
+        "Content-Disposition": "attachment; filename=grades_export.csv",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+    })
+
+
+@app.route("/verify-export", methods=["GET", "POST"])
+def verify_export():
+    if not login_required("teacher"):
+        return redirect(url_for("login"))
+    result = None
+    error = None
+    status = 200
+    if request.method == "POST":
+        # Reject an oversized multipart request before asking Flask to parse it.
+        if request.content_length and request.content_length > MAX_EXPORT_BYTES + 64 * 1024:
+            error, status = "The file must not exceed 5 MiB.", 413
+        else:
+            uploaded = request.files.get("file")
+            if uploaded is None or not uploaded.filename:
+                error, status = "Choose a grades export file to verify.", 400
+            else:
+                signed_file = uploaded.stream.read(MAX_EXPORT_BYTES + 1)
+                try:
+                    export_hmac.verify_csv(signed_file)
+                except ExportSizeError:
+                    error, status = "The file must not exceed 5 MiB.", 413
+                except ExportVerificationError:
+                    result, status = False, 400
+                else:
+                    result = True
+    response = Response(render_template("verify_export.html", result=result, error=error), status=status)
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.route("/admin")
