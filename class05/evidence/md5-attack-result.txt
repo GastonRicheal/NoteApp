@@ -1,0 +1,5 @@
+cracked 4 / 6 in 1.0 ms
+  liwei : 123456
+  aisha : password1
+  tomk : qwerty123
+  sofia : iloveyou

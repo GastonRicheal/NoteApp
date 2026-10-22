@@ -21,14 +21,28 @@ jobs:
           python3 scripts/generate_export_hmac_key.py
       - name: Build and start the course app
         run: docker compose up -d --build --wait --wait-timeout 90
-      - name: Verify health and the 38 homework checks
+      - name: Verify health and the 43 homework checks
         run: |
           curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://localhost:8080/healthz
           docker compose exec -T -e NOTESAPP_TEST_DB=1 web python -m unittest discover -s tests -v
           docker compose exec -T web python migrate_comments.py --dry-run
+      - name: Generate a temporary course certificate
+        run: |
+          mkdir -p nginx/certs
+          openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout nginx/certs/notesapp.key -out nginx/certs/notesapp.crt -subj "/CN=localhost"
+      - name: Verify the HTTPS entrance and removal of direct HTTP
+        run: |
+          docker compose down
+          docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --wait --wait-timeout 90
+          docker compose -f docker-compose.yml -f docker-compose.https.yml exec -T nginx nginx -t
+          curl --insecure --fail --retry 10 --retry-connrefused --retry-delay 1 https://localhost/healthz
+          if curl --silent --max-time 3 --output /dev/null http://localhost:8080/healthz; then
+            echo "The direct HTTP entrance is still reachable."
+            exit 1
+          fi
       - name: Show diagnostics on failure
         if: failure()
-        run: docker compose logs --no-color web db
+        run: docker compose -f docker-compose.yml -f docker-compose.https.yml logs --no-color
       - name: Stop the isolated CI stack
         if: always()
-        run: docker compose down
+        run: docker compose -f docker-compose.yml -f docker-compose.https.yml down

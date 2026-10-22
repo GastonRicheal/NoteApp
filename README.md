@@ -5,22 +5,24 @@
 # NotesApp security coursework
 
 Coursework fork of [KristenPire/NoteApp](https://github.com/KristenPire/NoteApp).
-This submission contains the work completed before Class 5:
+This fork contains the following coursework:
 
 - **Session 3 homework:** AES-256-GCM protection for stored note comments.
 - **Project 1:** numbered data-flow diagrams, trust boundaries, a STRIDE risk
   register, likelihood x impact scores, and fixes for the three highest risks.
 - **Class 4:** HMAC-SHA256 authentication and verification of grade CSV exports.
+- **Class 5:** HTTPS traffic auditing, certificate trust, and login-time Argon2id
+  password migration, with measured password-audit findings.
 
 This is a deliberately vulnerable teaching application. Other planted course
 flaws remain; the added controls do not make it suitable for a real deployment.
-Class 5 HTTPS/Argon2 lab changes are outside this submission.
 
 ## Submission materials
 
 - [Session 3 implementation and verification](HOMEWORK_SESSION03.md)
 - [Project 1 report and three-minute presentation](project1/README.md)
 - [Class 4 HMAC implementation and verification](CLASS04_HMAC_EXPORT.md)
+- [Class 5 required audit sheets and supporting evidence](class05/README.md)
 
 Project 1 is an explicitly dated 9 October 2026 analysis. Its code fingerprints
 identify that historical review, not the later HMAC implementation.
@@ -60,10 +62,11 @@ docker compose exec -T -e NOTESAPP_TEST_DB=1 web python -m unittest discover -s 
 docker compose exec -T web python migrate_comments.py --dry-run
 ```
 
-The submission has 38 unit/integration checks. Database integration tests use
+The submission has 43 unit/integration checks. Database integration tests use
 disposable `test_comment_crypto_*` schemas, not the application's public tables.
 CI generates temporary keys and verifies startup and all checks on a fresh seed
-database. See [the workflow](.github/workflows/coursework.yml).
+database, then checks the HTTPS entrance and closure of the direct HTTP port.
+See [the workflow](.github/workflows/coursework.yml).
 
 For the HMAC demonstration, log in as the teacher, download a signed grades CSV,
 and upload it on **Verify a grades export**. The original passes. Change one
@@ -95,3 +98,62 @@ git merge upstream/main
 
 Add `upstream` only once. After reviewing and testing a merge, push the approved
 changes to your own fork and rebuild the web image.
+
+## Class 5 labs: HTTPS and password storage
+
+The required findings sheets are [the transit audit](class05/TRANSIT_AUDIT.md)
+and [the password audit](class05/PASSWORD_AUDIT.md), with only their necessary
+supporting evidence. The pair for these labs is ZHANG FANGYUCHEN and LYU SONGYUAN.
+
+For the HTTPS lab, Docker Compose 2.24+ and OpenSSL are required. Generate your
+own certificate and private key once; neither generated file is committed.
+Create `nginx/certs` first (`mkdir -p nginx/certs` on Linux/macOS, or the following
+PowerShell command on Windows):
+
+```powershell
+New-Item -ItemType Directory -Force nginx/certs
+```
+
+Use the course's certificate parameters:
+
+```sh
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout nginx/certs/notesapp.key -out nginx/certs/notesapp.crt -subj "/CN=localhost"
+```
+
+If OpenSSL on Windows cannot find `openssl.cnf`, use the configuration file
+installed with your OpenSSL distribution through `-config <path-to-openssl.cnf>`.
+Do not replace an existing private key when you want to retain that certificate.
+Start the HTTPS entrance with both Compose files:
+
+```powershell
+docker compose down
+docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --build
+```
+
+This serves `https://localhost` through nginx and explicitly removes the base
+8080 port using `!reset []`. The certificate is self-signed for the lab and is
+not trusted by the browser; never commit the private key. The course cleanup is:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.https.yml down
+docker compose up -d
+```
+
+After cleanup, the default entrance is `http://localhost:8080`. Login supports
+Argon2id: a legacy plaintext password is upgraded only after a successful login.
+Our recorded evidence verifies Alice's migration and second login. A new clone
+starts with the course seed accounts; log in once to migrate each account.
+The username SQL concatenation remains as explicitly required by the course.
+
+The course MD5 demonstration uses simulated course data and the unmodified public
+wordlist. Run from the project root:
+
+```sh
+python crack/make_dump.py
+python crack/crack.py
+```
+
+The generated simulated dump stays local. The published findings retain the
+original measured results; rerunning on another machine need not give the same
+timings. Private keys, session cookies, raw captures, detailed local transcripts
+and review archives are excluded from the submission.
