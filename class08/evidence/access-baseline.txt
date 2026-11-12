@@ -1,0 +1,34 @@
+NotesApp Class 8 permission matrix -- PRE-FIX BUILD
+Git revision : 6d1bf81 (web/app.py api_notes; no ownership comparison)
+Stack        : docker compose project attack-prefix, web on 127.0.0.1:8090
+Captured by  : python class08/replay/permissions.py --base http://127.0.0.1:8090 --expect vulnerable
+====================================================================
+NotesApp permission matrix -- GET /api/notes/<id>  (Class 8)
+target : http://127.0.0.1:8090
+expect : vulnerable build
+run at : 2026-11-12 09:55:30
+====================================================================
+
+  actor         role        note 1 (alice)   note 3 (bob)   note 999
+  alice         student                200            200            404
+  prof.turing   teacher                200            200            404
+  admin         admin                  200            200            404
+  (no login)    anonymous                -            401          -
+
+  check                               observed  expected
+  ----------------------------------------------------
+  student: own                             200       200   MATCH
+  student: foreign                         200       200   MATCH
+  student: missing                         404       404   MATCH
+  teacher: own                             200       200   MATCH
+  teacher: foreign                         200       200   MATCH
+  teacher: missing                         404       404   MATCH
+  admin: own                               200       200   MATCH
+  admin: foreign                           200       200   MATCH
+  admin: missing                           404       404   MATCH
+  anonymous: foreign                       401       401   MATCH
+  ----------------------------------------------------
+VERDICT: matches the policy of this build
+
+Reading: a logged-in student reads bob's row with 200 and no error.
+The handler authenticated the caller and never compared the owner.

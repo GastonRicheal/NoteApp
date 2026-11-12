@@ -1,0 +1,34 @@
+NotesApp Class 8 permission matrix -- REPAIRED BUILD
+Git revision : d6c1c50 (web/app.py api_notes; owner filter, 404 for foreign rows)
+Stack        : docker compose project noteapp, web on 127.0.0.1:8080
+Captured by  : python class08/replay/permissions.py --base http://127.0.0.1:8080 --expect fixed
+====================================================================
+NotesApp permission matrix -- GET /api/notes/<id>  (Class 8)
+target : http://127.0.0.1:8080
+expect : fixed build
+run at : 2026-11-12 09:55:31
+====================================================================
+
+  actor         role        note 1 (alice)   note 3 (bob)   note 999
+  alice         student                200            404            404
+  prof.turing   teacher                200            200            404
+  admin         admin                  200            200            404
+  (no login)    anonymous                -            401          -
+
+  check                               observed  expected
+  ----------------------------------------------------
+  student: own                             200       200   MATCH
+  student: foreign                         404       404   MATCH
+  student: missing                         404       404   MATCH
+  teacher: own                             200       200   MATCH
+  teacher: foreign                         200       200   MATCH
+  teacher: missing                         404       404   MATCH
+  admin: own                               200       200   MATCH
+  admin: foreign                           200       200   MATCH
+  admin: missing                           404       404   MATCH
+  anonymous: foreign                       401       401   MATCH
+  ----------------------------------------------------
+VERDICT: matches the policy of this build
+
+Reading: a student's foreign read is 404, the same answer as a
+missing row, so the response does not reveal whether the row exists.

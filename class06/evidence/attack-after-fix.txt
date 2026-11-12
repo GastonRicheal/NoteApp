@@ -1,0 +1,56 @@
+NotesApp Class 6 attack replay -- REPAIRED BUILD
+Git revision : d6c1c50 (web/app.py; JWT key from the environment, HS256 pinned)
+Stack        : docker compose project noteapp, web on 127.0.0.1:8080, db postgres:15
+Database     : the course seed database of the local stack
+Captured by  : python class06/replay/attack.py --base http://127.0.0.1:8080 --expect fixed
+====================================================================
+NotesApp login attack replay -- Class 6 (flaw #4), Class 8 (flaw #7)
+target : http://127.0.0.1:8080
+expect : fixed build
+run at : 2026-11-12 09:55:30
+====================================================================
+
+[1] login: alice / alicepw
+    HTTP 200 -- session established, bearer token issued
+    header : {"alg": "HS256", "typ": "JWT"}
+    claims : {"user_id": 6, "username": "alice", "role": "student"}
+    token  : eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VyX2lkIjogN...
+
+[2] control: alice reads her own note (id 1)
+    HTTP 200
+    {"id": 1, "student": "alice", "grade": 16.2, "comment": "Late submission, but good quality."}
+
+[3] Class 8: alice reads bob's note (id 3) with her own legitimate token
+    HTTP 404
+    {"error": "not found"}
+
+[4] Class 6 part 1: forge an unsigned token, claims role=teacher
+    token  : eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VyX2lkIjo2LCJyb2xlIjoidGVhY2hlciJ9.
+    HTTP 401
+    {"error": "unauthorized"}
+
+[5] Class 6 part 2: recover the HS256 signing key offline
+    target   : the token above (157 chars)
+    wordlist : 46 candidate keys
+    work     : HMAC-SHA256 per candidate, 113 bytes of input
+    result   : NOT CRACKED after 46 candidates (0.33 ms)
+
+[6] Class 6 part 2: sign a teacher token and read bob's note
+    token  : signed with the old course key 's3cr3t' (key not recovered here)
+    HTTP 401
+    {"error": "unauthorized"}
+
+[7] anonymous request for note 3
+    HTTP 401
+    {"error": "unauthorized"}
+
+--------------------------------------------------------------------
+expected for a FIXED build:
+  MATCH  alice reads her own note         observed 200   expected 200
+  MATCH  alice reads bob's note (IDOR)    observed 404   expected 404
+  MATCH  unsigned forgeable token         observed 401   expected 401
+  MATCH  signing key recovered            observed no    expected False
+  MATCH  teacher token signed with it     observed 401   expected 401
+  MATCH  anonymous request                observed 401   expected 401
+--------------------------------------------------------------------
+VERDICT: matches the expected behaviour for this build

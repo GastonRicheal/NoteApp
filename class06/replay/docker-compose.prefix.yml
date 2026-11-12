@@ -1,0 +1,56 @@
+# Isolated stack for the pre-fix NotesApp (6d1bf81).
+#
+# It exists so the Class 6 forgery and the Class 8 cross-account read can be
+# observed against the vulnerable code without disturbing the repaired stack.
+# Set PREFIX_DIR to the pre-fix checkout:
+#
+#   PREFIX_DIR=../NoteApp-prefix docker compose -p attack-prefix \
+#       -f class06/replay/docker-compose.prefix.yml up -d --build
+#
+# Ports 8090 (web) and the pgdata_attack volume are deliberately separate from
+# the normal stack on 8080.
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: notesapp
+      POSTGRES_USER: notesapp
+      POSTGRES_PASSWORD: notesapp_pg_pw_2024
+    volumes:
+      - pgdata_attack:/var/lib/postgresql/data
+      - ${PREFIX_DIR:-../..}/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notesapp -d notesapp"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build: ${PREFIX_DIR:-../..}/web
+    environment:
+      DB_HOST: db
+      DB_NAME: notesapp
+      DB_USER: notesapp
+      POSTGRES_PASSWORD: notesapp_pg_pw_2024
+      # the pre-fix build reads the key from the environment, with this default
+      JWT_SECRET: s3cr3t
+      SECRET_KEY: dev-session-key
+      COMMENT_ENCRYPTION_KEY_FILE: /run/secrets/comment_key
+      EXPORT_HMAC_KEY_FILE: /run/secrets/export_key
+    secrets:
+      - comment_key
+      - export_key
+    ports:
+      - "8090:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata_attack:
+
+secrets:
+  comment_key:
+    file: ${PREFIX_DIR:-../..}/.secrets/comment_key.b64
+  export_key:
+    file: ${PREFIX_DIR:-../..}/.secrets/export_hmac_key.b64

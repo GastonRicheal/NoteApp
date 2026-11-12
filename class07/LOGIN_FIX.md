@@ -15,7 +15,13 @@ The [regression tests](../web/tests/test_app_auth.py) ran against the repaired a
 - **Normal student login:** login returned **302** and issued a signed token; the owner then received **200** for her fixture note.
 - **Missing or short key:** key loading failed; a malformed bearer credential also returned **401** even when a valid browser session was present.
 
-The rotation test demonstrates invalidation of an earlier legitimate token. The course's specific replay of a previously forged token was not performed. Browser sessions from before the update need a fresh sign-in.
+The rotation test demonstrates invalidation of an earlier legitimate token. The
+course's replay of the previously forged tokens was also performed: both Class 6
+artifacts were sent to the repaired app and answered **401**, against **200** on
+the pre-fix build, and a fresh login still reads its own row. See the
+[Class 6 attack replay](../class06/ATTACK.md) and
+[evidence/attack-after-fix.txt](../class06/evidence/attack-after-fix.txt).
+Browser sessions from before the update need a fresh sign-in.
 
 ## Run the checks
 
