@@ -1,0 +1,83 @@
+name: Class 6 attack replay (pre-fix build)
+
+# Manual only. The push workflow proves the repaired build refuses the forgeries;
+# this one proves the vulnerable build accepts them. It runs the pre-fix revision
+# in an isolated stack so the evidence can be regenerated on demand without
+# putting a vulnerable service anywhere near the main job.
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Revision to run as the vulnerable build
+        required: false
+        default: 6d1bf8159740c246bd1dbbce2f631f356ad07778
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the harness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Check out the vulnerable revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.revision }}
+          path: prefix
+
+      - name: Generate the keys the pre-fix stack expects
+        run: |
+          python3 scripts/generate_comment_key.py      --path prefix/.secrets/comment_key.b64
+          python3 scripts/generate_export_hmac_key.py  --path prefix/.secrets/export_hmac_key.b64
+
+      - name: Start the isolated pre-fix stack
+        env:
+          PREFIX_DIR: ${{ github.workspace }}/prefix
+        run: |
+          docker compose -p attack-prefix \
+            -f class06/replay/docker-compose.prefix.yml up -d --build
+          curl --fail --retry 20 --retry-connrefused --retry-delay 2 \
+            http://localhost:8090/healthz
+
+      - name: Replay the Class 6 forgery and the Class 8 cross-account read
+        env:
+          PREFIX_DIR: ${{ github.workspace }}/prefix
+        run: |
+          set -o pipefail
+          mkdir -p evidence
+          # --expect vulnerable makes each script exit non-zero unless the
+          # vulnerable behaviour is actually observed, so this job fails if the
+          # harness stops reproducing the flaw.
+          python3 class06/replay/attack.py --base http://localhost:8090 --expect vulnerable \
+            | tee evidence/prefix-attack.txt
+          python3 class08/replay/permissions.py --base http://localhost:8090 --expect vulnerable \
+            | tee evidence/prefix-permissions.txt
+
+      - name: Upload the transcripts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: prefix-replay-${{ inputs.revision }}
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Show the server log on failure
+        if: failure()
+        env:
+          PREFIX_DIR: ${{ github.workspace }}/prefix
+        run: |
+          docker compose -p attack-prefix \
+            -f class06/replay/docker-compose.prefix.yml logs --no-color
+
+      - name: Stop the isolated stack
+        if: always()
+        env:
+          PREFIX_DIR: ${{ github.workspace }}/prefix
+        run: |
+          docker compose -p attack-prefix \
+            -f class06/replay/docker-compose.prefix.yml down -v
