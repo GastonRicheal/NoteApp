@@ -98,6 +98,10 @@ On Windows PowerShell, set `$env:PREFIX_DIR = '..\NoteApp-prefix'` first. The
 script exits non-zero if any observed status differs from the build it was told
 to expect, so the evidence cannot silently drift.
 
+The second command also runs in CI on every push, against the stack the workflow
+just built. The "401 after the fix" result is therefore re-checked automatically
+rather than only recorded here.
+
 ## Conclusion
 
 The flaw was real and reachable over HTTP, not only visible in the source: an

@@ -18,6 +18,12 @@ python class06/replay/attack.py --base http://127.0.0.1:8080 --expect fixed
 python class08/replay/permissions.py --base http://127.0.0.1:8080 --expect fixed
 ```
 
+CI runs exactly these two commands on every push
+([`coursework.yml`](../../.github/workflows/coursework.yml)), against the stack
+it just built. Both exit non-zero on a single mismatched status, so a regression
+in the verifier or in the ownership check fails the build instead of being
+noticed in a report.
+
 ## Run against the pre-fix build
 
 The vulnerable build lives at `6d1bf81`. Run it from a second checkout so the
