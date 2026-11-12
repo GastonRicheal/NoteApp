@@ -56,6 +56,11 @@ Open <http://localhost:8080>. Check readiness with
 loads the course seed data and the web startup migration encrypts its comments
 before serving requests.
 
+The three keys those scripts generate are runtime secrets, not source. They live
+in `.secrets/`, which Git ignores, and Compose mounts them into the container as
+files. In a real deployment they belong in a secrets store — never in a
+committed file, and never in an image layer.
+
 Course seed accounts:
 
 - Student: `alice` / `alicepw`

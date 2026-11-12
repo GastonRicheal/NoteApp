@@ -6,6 +6,27 @@ Source: [Class 7 lab brief](https://kristenpire.github.io/epita-security-labs/cl
 
 **Fix 2.** A locally generated 256-bit random signing key replaces the course default. Compose mounts it as a secret and passes its path in `JWT_SECRET_FILE`; a non-Compose deployment may provide a Base64 `JWT_SECRET`. Missing or short keys prevent startup. The real key is excluded from Git. In production it belongs in a managed secret store. The separate Flask cookie signing key is derived from the provisioned key so a publicly known cookie key cannot undermine the API's identity check.
 
+## Hand-in
+
+```text
+LOGIN FIX — NotesApp flaw #4 (auth) closed
+  Fix 1:  verify_jwt rejects alg:none and pins algorithm to HS256
+  Fix 2:  JWT_SECRET is long + random, read from the environment (no s3cr3t, no default)
+  Proof:  alg:none token        -> 401 unauthorized
+          s3cr3t-signed token   -> 401 unauthorized
+          real alice login      -> 200, her own note returned
+```
+
+Both forged tokens are the artifacts kept from Class 6; the replay is
+[here](../class06/evidence/attack-after-fix.txt).
+
+**Prediction, recorded before the fixes (with the pair).**
+
+| question | predicted | why |
+|---|---|---|
+| After all three fixes, will the old forged tokens still work? | **no** | rule 1 refuses the unsigned token before any signature is looked for, and the new key means the old signed token no longer matches |
+| Will a normal login still work? | **yes** | nothing about the caller's credentials changed; only how a token is verified |
+
 ## Observed results
 
 The [regression tests](../web/tests/test_app_auth.py) ran against the repaired app using disposable PostgreSQL schemas. The [recorded test output](evidence/regression-results.txt) covers the following assertions:

@@ -6,6 +6,29 @@ Source: [Class 8 lab brief](https://kristenpire.github.io/epita-security-labs/cl
 
 **Fix:** The [note handler](../web/app.py) restricts the lookup to the student's own record unless the authenticated caller has a teacher or admin role. Authorization happens before comment decryption. **404 Not Found** was chosen so that a denied note and a missing note give the same response.
 
+## Hand-in
+
+```text
+IDOR FIX — NotesApp flaw #7 (broken access control) closed
+  Proof you got in:   as alice, /api/notes/3 returned bob's grade: 12.6 — "Solid work, keep it up."
+  Fix:                api_notes refuses a note whose student_id is not the caller's,
+                      unless the caller is a teacher/admin
+  Code chosen:        returns  [x] 404 not found   [ ] 403 forbidden
+  Proof it's closed:  as alice, /api/notes/3   -> 404 not found
+                      as alice, /api/notes/1   -> 200, her own note
+                      as prof.turing, /api/notes/3 -> 200, works
+```
+
+Both columns are measured, not asserted: the leak is
+[access-baseline.txt](evidence/access-baseline.txt) and the closure is
+[access-after-fix.txt](evidence/access-after-fix.txt).
+
+**Prediction, recorded before Part 1 (with the pair).**
+
+| question | predicted | why |
+|---|---|---|
+| What happens if alice asks for `/api/notes/3`, a note that is not hers? | **someone else's grade comes back** | the handler only asks "are you logged in?"; the note id in the URL names the object directly, so authentication alone decides the outcome |
+
 ## Observed results on the fixed app
 
 The [permission matrix](evidence/access-after-fix.txt) replays the three roles
