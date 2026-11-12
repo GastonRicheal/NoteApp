@@ -1,0 +1,21 @@
+NotesApp Class 7 and 8 defensive regression results
+Run date: 2026-11-12
+Scope: repaired app; disposable PostgreSQL test schemas only.
+
+Command used from the running local Compose stack:
+docker compose exec -T -e NOTESAPP_TEST_DB=1 web python -m unittest discover -s /host/web/tests -v
+
+The nine authentication and ownership checks from the full suite:
+test_admin_can_read_student_note (test_app_auth.AuthenticationAndOwnershipTests.test_admin_can_read_student_note) ... ok
+test_anonymous_or_unknown_role_is_unauthorized (test_app_auth.AuthenticationAndOwnershipTests.test_anonymous_or_unknown_role_is_unauthorized) ... ok
+test_malformed_bearer_does_not_fall_back_to_cookie (test_app_auth.AuthenticationAndOwnershipTests.test_malformed_bearer_does_not_fall_back_to_cookie) ... ok
+test_missing_and_short_signing_keys_fail_closed (test_app_auth.AuthenticationAndOwnershipTests.test_missing_and_short_signing_keys_fail_closed) ... ok
+test_normal_student_login_can_read_own_note_with_bearer (test_app_auth.AuthenticationAndOwnershipTests.test_normal_student_login_can_read_own_note_with_bearer) ... ok
+test_pre_rotation_legitimate_token_no_longer_accepted (test_app_auth.AuthenticationAndOwnershipTests.test_pre_rotation_legitimate_token_no_longer_accepted) ... ok
+test_student_denied_foreign_note_before_decryption (test_app_auth.AuthenticationAndOwnershipTests.test_student_denied_foreign_note_before_decryption) ... ok
+test_teacher_login_can_read_student_note (test_app_auth.AuthenticationAndOwnershipTests.test_teacher_login_can_read_student_note) ... ok
+test_unsigned_and_unsupported_headers_rejected (test_app_auth.AuthenticationAndOwnershipTests.test_unsigned_and_unsupported_headers_rejected) ... ok
+
+Full-suite summary:
+Ran 52 tests in 3.351s
+OK

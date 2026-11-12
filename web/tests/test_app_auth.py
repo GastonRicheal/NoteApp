@@ -20,18 +20,25 @@ class AuthenticationAndOwnershipTests(PostgresAppTestCase):
         return {"Authorization": f"Bearer {token}"}
 
     def test_unsigned_and_unsupported_headers_rejected(self):
+        client = self.notesapp.app.test_client()
         for algorithm in ("none", "HS384", "hs256"):
             with self.subTest(algorithm=algorithm):
                 header = self.notesapp._b64url(json.dumps({"alg": algorithm}).encode())
                 # Empty claims: check rejection without creating a usable identity.
-                self.assertIsNone(self.notesapp.verify_jwt(f"{header}.e30."))
+                token = f"{header}.e30."
+                self.assertIsNone(self.notesapp.verify_jwt(token))
+                response = client.get("/api/notes/1", headers=self.bearer(token))
+                self.assertEqual((response.status_code, response.get_json()),
+                                 (401, {"error": "unauthorized"}))
 
     def test_pre_rotation_legitimate_token_no_longer_accepted(self):
         _, token = self.login("alice", "alicepw")
-        self.assertIsNotNone(self.notesapp.verify_jwt(token))
+        client = self.notesapp.app.test_client()
+        self.assertEqual(client.get("/api/notes/1", headers=self.bearer(token)).status_code, 200)
         with patch.object(self.notesapp, "JWT_KEY", secrets.token_bytes(32)):
-            client = self.notesapp.app.test_client()
-            self.assertEqual(client.get("/api/notes/1", headers=self.bearer(token)).status_code, 401)
+            response = client.get("/api/notes/1", headers=self.bearer(token))
+            self.assertEqual((response.status_code, response.get_json()),
+                             (401, {"error": "unauthorized"}))
 
     def test_malformed_bearer_does_not_fall_back_to_cookie(self):
         client, _ = self.login("alice", "alicepw")

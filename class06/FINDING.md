@@ -1,10 +1,10 @@
-# Class 6 — JWT finding from source review
+# Class 6 — JWT authentication finding
 
-Baseline: [NotesApp before the fix](https://github.com/GastonRicheal/NoteApp/blob/6d1bf8159740c246bd1dbbce2f631f356ad07778/web/app.py#L102-L128). This is a source-review finding; the live exploitation exercise was not performed.
+Source: [Class 6 lab brief](https://kristenpire.github.io/epita-security-labs/class6/forge-a-token/). Reviewed the [pre-fix verifier at `6d1bf81`](https://github.com/GastonRicheal/NoteApp/blob/6d1bf8159740c246bd1dbbce2f631f356ad07778/web/app.py#L102-L128).
 
-- **Data at risk:** Grades and comments belonging to other students. No other student's record was retrieved.
-- **Finding 1:** The original verifier returned claims for an unsigned token without authenticating them.
-- **Finding 2:** The original server used a short, hard-coded HS256 signing secret. No secret-cracking experiment was performed.
-- **Why it matters:** The verifier let untrusted token metadata govern verification, and the signing key did not provide meaningful resistance to guessing.
+- **What was read:** The verifier and signing-key configuration were reviewed. No grade or comment was retrieved from the pre-fix app.
+- **Finding 1 — unsigned tokens:** The `none` branch returned claims without verifying their authenticity. This affected the trustworthiness of caller identity and role.
+- **Finding 2 — signing key:** The baseline used a short, committed HS256 key. A valid signature is not evidence of a trustworthy issuer when the signing key is public.
+- **Why this matters:** Authentication must derive trust from server policy and a protected key. Caller-supplied metadata cannot decide whether verification is required.
 
-The corresponding defensive changes and tests are in the [Class 7 report](../class07/LOGIN_FIX.md).
+**Evidence boundary:** No token-forgery or key-guessing experiment was performed. The course's live observation is not present. The [Class 7 report](../class07/LOGIN_FIX.md) records the repair and the measured behavior of the fixed app.
