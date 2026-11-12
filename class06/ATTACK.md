@@ -15,7 +15,7 @@ the pre-fix revision in an isolated stack.
 | Stack | Compose project `attack-prefix`, web on `127.0.0.1:8090`, `postgres:15` with a disposable volume seeded from `db/init.sql` |
 | Repaired stack | The local `noteapp` project on `127.0.0.1:8080`, left untouched and measured with the same script |
 | Harness | [`replay/attack.py`](replay/attack.py) — seven steps, standard library only |
-| Raw output | [attack-baseline.txt](evidence/attack-baseline.txt), [attack-after-fix.txt](evidence/attack-after-fix.txt), [ci-replay.txt](evidence/ci-replay.txt) |
+| Raw output | [attack-baseline.txt](evidence/attack-baseline.txt), [attack-after-fix.txt](evidence/attack-after-fix.txt), [ci-replay.txt](evidence/ci-replay.txt), [ci-prefix-replay.txt](evidence/ci-prefix-replay.txt) |
 
 The two stacks run from the same `db/init.sql`, so the compared rows are the
 same rows. Nothing was written to either database.
@@ -103,6 +103,12 @@ just built. The "401 after the fix" result is therefore re-checked automatically
 rather than only recorded here; [ci-replay.txt](evidence/ci-replay.txt) is the
 transcript from that step, and the run that produced it is
 [43188295570](https://github.com/GastonRicheal/NoteApp/actions/runs/43188295570).
+
+The baseline can be regenerated in CI too, on demand rather than on every push:
+[`replay-prefix.yml`](../.github/workflows/replay-prefix.yml) runs this same
+pre-fix stack from a `workflow_dispatch` job and returns the same statuses
+(run [43189297737](https://github.com/GastonRicheal/NoteApp/actions/runs/43189297737),
+39 s; transcript in [ci-prefix-replay.txt](evidence/ci-prefix-replay.txt)).
 
 ## Conclusion
 

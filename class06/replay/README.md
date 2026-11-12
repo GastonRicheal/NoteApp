@@ -55,6 +55,24 @@ python class06/replay/attack.py --base http://127.0.0.1:8090 --expect vulnerable
 data in the `pgdata_attack` volume, so it can run beside the normal stack
 (`8080`) without touching either the database or the code under test.
 
+## Run it in GitHub Actions
+
+The push workflow exercises the **repaired** build only, because that is the one
+that must keep refusing the forgeries. The baseline needs the vulnerable
+revision, so it lives in a separate manual workflow
+([`replay-prefix.yml`](../../.github/workflows/replay-prefix.yml)):
+
+```sh
+gh workflow run replay-prefix.yml
+# or: Actions -> "Class 6 attack replay (pre-fix build)" -> Run workflow
+```
+
+That job checks the revision out into `prefix/`, generates the two keys, starts
+the isolated stack on `:8090`, runs both harnesses with `--expect vulnerable`,
+uploads the transcripts as an artifact named `prefix-replay-<sha>`, and removes
+the stack. The `revision` input defaults to `6d1bf81`; the job fails if the flaw
+stops reproducing.
+
 ## Tear down
 
 ```sh
