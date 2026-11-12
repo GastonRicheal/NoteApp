@@ -40,8 +40,21 @@ jobs:
         run: |
           docker compose -p attack-prefix \
             -f class06/replay/docker-compose.prefix.yml up -d --build
-          curl --fail --retry 20 --retry-connrefused --retry-delay 2 \
-            http://localhost:8090/healthz
+          # The pre-fix app runs the Flask development server with the reloader
+          # on, so the earliest connections are reset while it starts. Poll
+          # instead of trusting one curl: a reset is not a refused connection,
+          # so --retry-connrefused does not cover it.
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://localhost:8090/healthz > /dev/null 2>&1; then
+              echo "NotesApp answered after ${attempt} attempt(s)"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "NotesApp did not answer on :8090 within 120s"
+          docker compose -p attack-prefix \
+            -f class06/replay/docker-compose.prefix.yml logs --no-color
+          exit 1
 
       - name: Replay the Class 6 forgery and the Class 8 cross-account read
         env:
