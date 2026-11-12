@@ -1,0 +1,85 @@
+NotesApp Class 6 / Class 8 replay in GitHub Actions -- REPAIRED BUILD
+Workflow run : 43188295570 (Coursework checks, push to main, commit fdf0987)
+URL          : https://github.com/GastonRicheal/NoteApp/actions/runs/43188295570
+Step         : Verify health and replay the Class 6 and Class 8 attacks
+Stack        : docker compose up -d --build on the runner, 127.0.0.1:8080
+Captured by  : gh run view 43188295570 --log (prefix, timestamps and colour stripped;
+               the runner masks the bearer token as ***)
+
+NotesApp login attack replay -- Class 6 (flaw #4), Class 8 (flaw #7)
+target : http://localhost:8080
+expect : fixed build
+run at : 2026-11-12 09:05:32
+====================================================================
+
+[1] login: alice / alicepw
+    HTTP 200 -- session established, bearer token issued
+    header : {"alg": "HS256", "typ": "JWT"}
+    claims : {"user_id": 6, "username": "alice", "role": "student"}
+    token  : ***
+
+[2] control: alice reads her own note (id 1)
+    HTTP 200
+    {"id": 1, "student": "alice", "grade": 16.2, "comment": "Late submission, but good quality."}
+
+[3] Class 8: alice reads bob's note (id 3) with her own legitimate token
+    HTTP 404
+    {"error": "not found"}
+
+[4] Class 6 part 1: forge an unsigned token, claims role=teacher
+    token  : ***
+    HTTP 401
+    {"error": "unauthorized"}
+
+[5] Class 6 part 2: recover the HS256 signing key offline
+    target   : the token above (157 chars)
+    wordlist : 46 candidate keys
+    work     : HMAC-SHA256 per candidate, 113 bytes of input
+    result   : NOT CRACKED after 46 candidates (0.13 ms)
+
+[6] Class 6 part 2: sign a teacher token and read bob's note
+    token  : signed with the old course key 's3cr3t' (key not recovered here)
+    HTTP 401
+    {"error": "unauthorized"}
+
+[7] anonymous request for note 3
+    HTTP 401
+    {"error": "unauthorized"}
+
+--------------------------------------------------------------------
+expected for a FIXED build:
+  MATCH  alice reads her own note         observed 200   expected 200
+  MATCH  alice reads bob's note (IDOR)    observed 404   expected 404
+  MATCH  unsigned forgeable token         observed 401   expected 401
+  MATCH  signing key recovered            observed no    expected False
+  MATCH  teacher token signed with it     observed 401   expected 401
+  MATCH  anonymous request                observed 401   expected 401
+--------------------------------------------------------------------
+VERDICT: matches the expected behaviour for this build
+====================================================================
+NotesApp permission matrix -- GET /api/notes/<id>  (Class 8)
+target : http://localhost:8080
+expect : fixed build
+run at : 2026-11-12 09:05:32
+====================================================================
+
+  actor         role        note 1 (alice)   note 3 (bob)   note 999
+  alice         student                200            404            404
+  prof.turing   teacher                200            200            404
+  admin         admin                  200            200            404
+  (no login)    anonymous                -            401          -
+
+  check                               observed  expected
+  ----------------------------------------------------
+  student: own                             200       200   MATCH
+  student: foreign                         404       404   MATCH
+  student: missing                         404       404   MATCH
+  teacher: own                             200       200   MATCH
+  teacher: foreign                         200       200   MATCH
+  teacher: missing                         404       404   MATCH
+  admin: own                               200       200   MATCH
+  admin: foreign                           200       200   MATCH
+  admin: missing                           404       404   MATCH
+  anonymous: foreign                       401       401   MATCH
+  ----------------------------------------------------
+VERDICT: matches the policy of this build
