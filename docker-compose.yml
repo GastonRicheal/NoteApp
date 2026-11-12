@@ -23,13 +23,13 @@ services:
       DB_NAME: notesapp
       DB_USER: notesapp
       POSTGRES_PASSWORD: notesapp_pg_pw_2024
-      JWT_SECRET: s3cr3t
-      SECRET_KEY: dev-session-key
+      JWT_SECRET_FILE: /run/secrets/jwt_signing_key
       COMMENT_ENCRYPTION_KEY_FILE: /run/secrets/comment_encryption_key
       EXPORT_HMAC_KEY_FILE: /run/secrets/export_hmac_key
     secrets:
       - comment_encryption_key
       - export_hmac_key
+      - jwt_signing_key
     ports:
       - "8080:5000"
     depends_on:
@@ -49,3 +49,5 @@ secrets:
     file: ./.secrets/comment_key.b64
   export_hmac_key:
     file: ./.secrets/export_hmac_key.b64
+  jwt_signing_key:
+    file: ./.secrets/jwt_key.b64

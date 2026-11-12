@@ -10,8 +10,8 @@ import json
 import hmac
 import time
 import base64
-import hashlib
 import subprocess
+from pathlib import Path
 
 import psycopg2
 import psycopg2.extras
@@ -32,14 +32,31 @@ DB_HOST = os.environ.get("DB_HOST", "db")
 DB_NAME = os.environ.get("DB_NAME", "notesapp")
 DB_USER = os.environ.get("DB_USER", "notesapp")
 DB_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "notesapp_pg_pw_2024")
-JWT_SECRET = os.environ.get("JWT_SECRET", "s3cr3t")
-SECRET_KEY = os.environ.get("SECRET_KEY", "dev-session-key")
+
+
+def load_jwt_key():
+    """Load a provisioned 256-bit key; never start with a default secret."""
+    try:
+        encoded = os.environ.get("JWT_SECRET")
+        if encoded is None:
+            encoded = Path(os.environ["JWT_SECRET_FILE"]).read_text(encoding="ascii").strip()
+        key = base64.b64decode(encoded, validate=True)
+    except (KeyError, OSError, ValueError):
+        raise RuntimeError("Provision JWT_SECRET or JWT_SECRET_FILE before starting NotesApp.") from None
+    if len(key) != 32:
+        raise RuntimeError("The JWT signing key must be 32 random bytes encoded as Base64.")
+    return key
+
+
+JWT_KEY = load_jwt_key()
 comment_cipher = load_comment_cipher()
 export_hmac = load_export_hmac()
 
 app = Flask(__name__)
 ph = PasswordHasher()
-app.secret_key = SECRET_KEY
+# Flask cookies can also authenticate API calls. Use a distinct signing key
+# derived from the provisioned secret rather than a public cookie key.
+app.secret_key = hmac.digest(JWT_KEY, b"NotesApp Flask session key v1", "sha256")
 
 
 def is_argon2_hash(value: str) -> bool:
@@ -80,14 +97,14 @@ def comment_decryption_failed(error):
     return jsonify({"error": "Comment data could not be decrypted."}), 500
 
 
-# --- Minimal JWT (deliberately weak) ------------------------------------------
+# --- HS256 JWT ----------------------------------------------------------------
 def _b64url(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
 
 
 def _b64url_decode(s: str) -> bytes:
     s += "=" * (-len(s) % 4)
-    return base64.urlsafe_b64decode(s)
+    return base64.b64decode(s, altchars=b"-_", validate=True)
 
 
 def make_jwt(payload: dict) -> str:
@@ -95,50 +112,44 @@ def make_jwt(payload: dict) -> str:
     h = _b64url(json.dumps(header).encode())
     p = _b64url(json.dumps(payload).encode())
     signing_input = f"{h}.{p}".encode()
-    sig = hmac.new(JWT_SECRET.encode(), signing_input, hashlib.sha256).digest()
+    sig = hmac.digest(JWT_KEY, signing_input, "sha256")
     return f"{h}.{p}.{_b64url(sig)}"
 
 
 def verify_jwt(token: str):
-    """Decode a JWT. Accepts alg:none (no signature) and HS256 with a short key.
-
-    This is intentionally broken (flaw #4): an attacker can forge any identity
-    by setting "alg":"none", and the HS256 key is trivially guessable.
-    """
+    """Accept only HS256 tokens authenticated by the configured signing key."""
     try:
         h_b64, p_b64, sig_b64 = token.split(".")
-    except ValueError:
-        return None
-    try:
         header = json.loads(_b64url_decode(h_b64))
+        if not isinstance(header, dict) or header.get("alg") != "HS256":
+            return None
+        signing_input = f"{h_b64}.{p_b64}".encode("ascii")
+        expected = _b64url(hmac.digest(JWT_KEY, signing_input, "sha256")).encode("ascii")
+        if not hmac.compare_digest(expected, sig_b64.encode("ascii")):
+            return None
         payload = json.loads(_b64url_decode(p_b64))
-    except Exception:
+    except (ValueError, RecursionError):
         return None
+    return payload if valid_identity(payload) else None
 
-    alg = header.get("alg", "").lower()
-    if alg == "none":
-        # No signature verification at all.
-        return payload
-    if alg == "hs256":
-        signing_input = f"{h_b64}.{p_b64}".encode()
-        expected = _b64url(hmac.new(JWT_SECRET.encode(), signing_input, hashlib.sha256).digest())
-        if hmac.compare_digest(expected, sig_b64):
-            return payload
-        return None
-    return None
+
+def valid_identity(identity):
+    if not isinstance(identity, dict):
+        return False
+    user_id = identity.get("user_id")
+    return (type(user_id) is int and user_id > 0
+            and identity.get("role") in ("student", "teacher", "admin"))
 
 
 def current_identity():
     """Return the acting identity from a Bearer JWT if present, else the session."""
-    auth = request.headers.get("Authorization", "")
-    if auth.startswith("Bearer "):
-        payload = verify_jwt(auth[7:].strip())
-        if payload:
-            return payload
-    if "user_id" in session:
-        return {"user_id": session["user_id"], "username": session.get("username"),
+    auth = request.headers.get("Authorization")
+    if auth is not None:
+        scheme, _, token = auth.partition(" ")
+        return verify_jwt(token.strip()) if scheme.lower() == "bearer" else None
+    identity = {"user_id": session.get("user_id"), "username": session.get("username"),
                 "role": session.get("role")}
-    return None
+    return identity if valid_identity(identity) else None
 
 
 # --- Auth helpers -------------------------------------------------------------
@@ -207,7 +218,7 @@ def login():
             session["user_id"] = row["id"]
             session["username"] = row["username"]
             session["role"] = row["role"]
-            # Issue a weak JWT the dashboard uses to call the API.
+            # Issue the signed JWT the dashboard uses to call the API.
             session["token"] = make_jwt({
                 "user_id": row["id"], "username": row["username"], "role": row["role"],
             })
@@ -250,14 +261,14 @@ def api_notes(note_id):
         return jsonify({"error": "unauthorized"}), 401
     conn = get_db()
     cur = conn.cursor()
-    # Flaw #7 (IDOR): the owner of the note is never checked. Any authenticated
-    # caller can read any note id. Flaw #4: `ident` may come from a forged token.
+    # Filter by ownership before returning or decrypting any student data.
     cur.execute(
         "SELECT n.id, n.student_id, n.class_id, n.grade, n.comment, "
         "u.username AS student, c.name AS class_name "
         "FROM notes n JOIN users u ON u.id = n.student_id "
-        "JOIN classes c ON c.id = n.class_id WHERE n.id = %s",
-        (note_id,),
+        "JOIN classes c ON c.id = n.class_id WHERE n.id = %s "
+        "AND (%s IN ('teacher', 'admin') OR n.student_id = %s)",
+        (note_id, ident["role"], ident["user_id"]),
     )
     note = cur.fetchone()
     conn.close()

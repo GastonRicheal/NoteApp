@@ -13,6 +13,9 @@ This fork contains the following coursework:
 - **Class 4:** HMAC-SHA256 authentication and verification of grade CSV exports.
 - **Class 5:** HTTPS traffic auditing, certificate trust, and login-time Argon2id
   password migration, with measured password-audit findings.
+- **Class 6:** source review of the original JWT verification flaw.
+- **Class 7:** HS256-only verification and a provisioned random signing key.
+- **Class 8:** server-side note ownership checks and access regressions.
 
 This is a deliberately vulnerable teaching application. Other planted course
 flaws remain; the added controls do not make it suitable for a real deployment.
@@ -23,6 +26,9 @@ flaws remain; the added controls do not make it suitable for a real deployment.
 - [Project 1 report and three-minute presentation](project1/README.md)
 - [Class 4 HMAC implementation and verification](CLASS04_HMAC_EXPORT.md)
 - [Class 5 required audit sheets and supporting evidence](class05/README.md)
+- [Class 6 source-review finding](class06/FINDING.md)
+- [Class 7 login fix and regression evidence](class07/LOGIN_FIX.md)
+- [Class 8 grade access fix and regression evidence](class08/ACCESS_FIX.md)
 
 Project 1 is an explicitly dated 9 October 2026 analysis. Its code fingerprints
 identify that historical review, not the later HMAC implementation.
@@ -38,6 +44,7 @@ git clone https://github.com/GastonRicheal/NoteApp.git
 cd NoteApp
 python scripts/generate_comment_key.py
 python scripts/generate_export_hmac_key.py
+python scripts/generate_jwt_key.py
 docker compose up -d --build --wait
 ```
 
@@ -62,7 +69,7 @@ docker compose exec -T -e NOTESAPP_TEST_DB=1 web python -m unittest discover -s 
 docker compose exec -T web python migrate_comments.py --dry-run
 ```
 
-The submission has 43 unit/integration checks. Database integration tests use
+The submission has 52 unit/integration checks. Database integration tests use
 disposable `test_comment_crypto_*` schemas, not the application's public tables.
 CI generates temporary keys and verifies startup and all checks on a fresh seed
 database, then checks the HTTPS entrance and closure of the direct HTTP port.
@@ -75,12 +82,18 @@ does not import grades or write to the database.
 
 ## Key and data handling
 
-The two generated keys have different purposes and live in Git-ignored
+The three generated keys have different purposes and live in Git-ignored
 `.secrets/` files. Compose mounts them as secrets. No existing key, database
 dump, exported grade data, private TLS key, packet capture or local cache is
 part of this submission. Preserve your own keys and database volume together;
 regenerating or replacing a key does not recover old encrypted data or validate
 exports signed with another key.
+
+Compose sets `JWT_SECRET_FILE` to the mounted signing key. Without Compose,
+provide `JWT_SECRET` as 32 random bytes encoded in Base64, or point
+`JWT_SECRET_FILE` to a file with that value. Use a secret manager in a real
+deployment. Existing browser sessions are invalidated by the switch from the
+course default; sign in again after rebuilding.
 
 Stop with `docker compose down`; the named database volume is retained. Never
 delete that volume when you need the existing coursework data.

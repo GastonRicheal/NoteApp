@@ -19,9 +19,10 @@ jobs:
         run: |
           python3 scripts/generate_comment_key.py
           python3 scripts/generate_export_hmac_key.py
+          python3 scripts/generate_jwt_key.py
       - name: Build and start the course app
         run: docker compose up -d --build --wait --wait-timeout 90
-      - name: Verify health and the 43 homework checks
+      - name: Verify health and run coursework regression tests
         run: |
           curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://localhost:8080/healthz
           docker compose exec -T -e NOTESAPP_TEST_DB=1 web python -m unittest discover -s tests -v
