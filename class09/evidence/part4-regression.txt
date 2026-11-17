@@ -1,0 +1,29 @@
+== Part 4: the real features still work on the final build ==
+Recorded: 2026-11-17 09:36:42 Europe/Paris
+
+-- replay starting state: alice's row restored to the documented seed password --
+  UPDATE users SET password='alicepw' WHERE username='alice' (disposable lab data)
+
+-- alice / alicepw, first login (plaintext row from the seed) --
+alice first login: POST /login -> HTTP 302 ; GET /dashboard -> HTTP 200
+dashboard: ID Class Grade Comment 2 Computer Science 10.5 Needs to review chapter 3. 1 Mathematics 16.2 Late submission, but good quality.
+
+-- alice / alicepw, second login (row upgraded to Argon2id by the first login) --
+alice second login: POST /login -> HTTP 302 ; GET /dashboard -> HTTP 200
+
+-- alice, wrong password --
+alice/wrong: POST /login -> HTTP 200 ; form says: Invalid credentials.
+
+-- both SQLi inputs are still inert on the final build --
+payload 1: username = [admin' -- ]  length 10
+  POST /login -> HTTP 200 ; form says: Invalid credentials.
+payload 2: username = [zzz' UNION SELECT 1,'admin','admin','anything' -- ]  length 50
+  POST /login -> HTTP 200 ; form says: Invalid credentials.
+
+-- admin page and plain ping --
+GET /admin as admin -> HTTP 200
+plain ping 127.0.0.1 -> PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.
+
+-- password storage after the logins --
+  admin|$argon2id$|97
+  alice|$argon2id$|97

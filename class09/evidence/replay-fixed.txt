@@ -1,0 +1,24 @@
+# Class 9 replay against the fixed build (this submission, uncommitted fix applied)
+# Container stack: class9lab, published on 8081 because 8080 was already in use.
+
+====================================================================
+NotesApp Class 9 injection replay (flaws #8 and #9)
+target : http://localhost:8081
+expect : fixed build
+====================================================================
+
+  MATCH  lab payload admin' -- returns a session      observed False expected False
+  MATCH  real admin login (admin/admin123)            observed True  expected True
+  MATCH  admin page opens for that session            observed True  expected True
+  MATCH  plain 127.0.0.1 ping works                   observed True  expected True
+  MATCH  command injection prints uid=0(...)          observed False expected False
+  info   command injection text kept: Invalid host: use only letters, digits, dots and hyphens.
+  MATCH  real student login (alice/alicepw)           observed True  expected True
+  MATCH  UNION login returns a session                observed False expected False
+  MATCH  UNION login opens the admin page             observed False expected False
+
+  admin ping reply on the injection payload: 'Invalid host: use only letters, digits, dots and hyphens.'
+
+VERDICT: matches the expected behaviour for the fixed build
+
+[exit 0]

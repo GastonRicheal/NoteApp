@@ -17,6 +17,8 @@ This fork contains the following coursework:
   replay of both forgeries against the pre-fix build.
 - **Class 7:** HS256-only verification and a provisioned random signing key.
 - **Class 8:** server-side note ownership checks and access regressions.
+- **Class 9:** parameterised login and an argument-list ping, closing the SQL and command
+  injection holes, with a replay harness that fails CI if either returns.
 
 This is a deliberately vulnerable teaching application. Other planted course
 flaws remain; the added controls do not make it suitable for a real deployment.
@@ -31,6 +33,7 @@ flaws remain; the added controls do not make it suitable for a real deployment.
 - [Class 6 live forgery replay against the pre-fix build](class06/ATTACK.md)
 - [Class 7 login fix and regression evidence](class07/LOGIN_FIX.md)
 - [Class 8 grade access fix and regression evidence](class08/ACCESS_FIX.md)
+- [Class 9 injection fix and replay evidence](class09/INJECTION_FIX.md)
 - [Replay harness and reproduction steps](class06/replay/README.md)
 
 Project 1 is an explicitly dated 9 October 2026 analysis. Its code fingerprints

@@ -1,0 +1,22 @@
+== Part 3 fix: same injection against admin_ping() with an argument list ==
+Recorded: 2026-11-17 09:35:46 Europe/Paris
+Code: subprocess.run(['ping','-c','1',host], capture_output=True, text=True, timeout=10) - no shell=True
+
+$ curl.exe -s -b a.jar --data-urlencode "host=127.0.0.1; id; head -2 /etc/passwd" http://localhost:8081/admin/ping
+ping: 127.0.0.1; id; head -2 /etc/passwd: Name or service not known
+
+contains uid=0        -> False
+contains root:        -> False
+contains /bin/bash    -> False
+
+-- plain 127.0.0.1 still pings (real feature) --
+  PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.
+  64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.109 ms
+  
+  --- 127.0.0.1 ping statistics ---
+  1 packets transmitted, 1 received, 0% packet loss, time 0ms
+  rtt min/avg/max/mdev = 0.109/0.109/0.109/0.000 ms
+
+== Defence in depth: same fix plus host validation (re.fullmatch('[A-Za-z0-9.-]+', host)) ==
+127.0.0.1; id; head -2 /etc/passwd -> Invalid host: use only letters, digits, dots and hyphens.
+127.0.0.1 -> PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.

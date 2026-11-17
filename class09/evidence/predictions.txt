@@ -1,0 +1,35 @@
+Class 9 — predictions recorded BEFORE any attack was sent
+Lab: docs/class9/injection.md ("Your words become commands")
+Recorded: 2026-11-17 09:33 Europe/Paris
+Target: this repository's NotesApp clone (build from the pre-fix HEAD), fresh seed database.
+
+  P1  Lab baseline: POST /login with username  admin' --   and any password
+      -> logs in as admin; /admin opens. The ' closes the name literal early and
+         -- comments out the rest of the line, so the AND password = ... part of
+         the sentence is never executed.
+
+  P2  THIS revision: same payload
+      -> login FAILS. Class 5 moved the password check out of SQL into Python
+         (Argon2id aware), so the sentence is only
+           ... WHERE username = '<input>'
+         and -- has no password clause to strike out. The query still returns
+         admin's row, but the Python check compares the stored password with
+         our junk password and refuses it.
+
+  P3  If P2 holds, the flaw is still there but needs a different grammar:
+         username = zzz' UNION SELECT 1,'admin','admin','anything' --
+         password = anything
+      -> logs in as admin. The UNION supplies our own row; the password column
+         of that row is the string we chose, so the Python check compares our
+         string with itself. No real password is ever used.
+
+  P4  Command injection: host = 127.0.0.1; id; head -2 /etc/passwd
+      -> the ping result is followed by uid=0(root) and the first lines of
+         /etc/passwd, because admin_ping() glues host into "ping -c 1 ..." and
+         runs it with shell=True inside a container that has no USER directive.
+
+  P5  After the two fixes, the same two inputs
+      -> SQLi: no row, login fails, /admin redirects to /login.
+      -> CmdI: ping reports an unknown host, no id / passwd lines.
+      -> Real use: alice/alicepw and admin/admin123 still log in; a plain
+         127.0.0.1 still pings.

@@ -1,0 +1,30 @@
+# Class 9 regression evidence - the whole coursework suite still passes on the fixed build
+# Recorded: 2026-11-17 09:39:19 Europe/Paris
+# Stack: class9lab (compose project for this submission), http://localhost:8081
+
+## 1. docker compose exec -e NOTESAPP_TEST_DB=1 web python -m unittest discover -s tests
+Ran 52 tests in 2.774s
+OK
+[exit 0]
+
+## 2. python class06/replay/attack.py --base http://localhost:8081 --expect fixed
+--------------------------------------------------------------------
+expected for a FIXED build:
+  MATCH  alice reads her own note         observed 200   expected 200
+  MATCH  alice reads bob's note (IDOR)    observed 404   expected 404
+  MATCH  unsigned forgeable token         observed 401   expected 401
+  MATCH  signing key recovered            observed no    expected False
+  MATCH  teacher token signed with it     observed 401   expected 401
+  MATCH  anonymous request                observed 401   expected 401
+--------------------------------------------------------------------
+VERDICT: matches the expected behaviour for this build
+[exit 0]
+
+## 3. python class08/replay/permissions.py --base http://localhost:8081 --expect fixed
+  anonymous: foreign                       401       401   MATCH
+  ----------------------------------------------------
+VERDICT: matches the policy of this build
+
+Reading: a student's foreign read is 404, the same answer as a
+missing row, so the response does not reveal whether the row exists.
+[exit 0]

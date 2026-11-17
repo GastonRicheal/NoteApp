@@ -1,0 +1,22 @@
+== Part 2: the same SQLi inputs against the fixed build (parameterised query) ==
+Recorded: 2026-11-17 09:34:49 Europe/Paris
+
+username admin' --                 POST /login -> HTTP 200 ; GET /admin -> HTTP 302 ; h1: Redirecting... ; form says: Invalid credentials.
+username UNION payload             POST /login -> HTTP 200 ; GET /admin -> HTTP 302 ; h1: Redirecting... ; form says: Invalid credentials.
+username ' (syntax probe)          POST /login -> HTTP 200 ; GET /admin -> HTTP 302 ; h1: Redirecting... ; form says: Invalid credentials.
+
+-- Real administrator login, for Part 3 --
+admin/admin123: POST /login -> HTTP 200 ; GET /admin -> HTTP 302 ; h1: Redirecting...
+Jar (kept outside the repo): C:\Users\86150\AppData\Local\Temp\class9_real_admin.jar
+
+-- Side effect measured on the vulnerable build --
+The UNION login authenticated with the row we supplied, password column 'anything'.
+The pre-fix login's plaintext->Argon2id upgrade then wrote the hash of that value to admin's row:
+  users.id=1 admin -> $argon2id$v=19$m=65536,t=3,p=4$... (97 chars)
+So admin/admin123 stopped working until the seed password was restored for Part 3.
+Injection on this endpoint is therefore destructive, not just an authentication bypass.
+
+-- Restoring the classroom seed password for the Part 3 checkpoint (lab data, not customer data) --
+UPDATE 1
+1|admin|admin123
+admin/admin123 after restore: POST /login -> HTTP 302 ; GET /admin -> HTTP 200 ; h1: Users
