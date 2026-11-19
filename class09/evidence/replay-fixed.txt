@@ -1,5 +1,6 @@
-# Class 9 replay against the fixed build (this submission, uncommitted fix applied)
-# Container stack: class9lab, published on 8081 because 8080 was already in use.
+# Class 9 replay against the final build (CSRF token now included on POST /admin/ping)
+# Recorded: 2026-11-19 09:26:57 Europe/Paris
+# Stack: notesapp-lab, published on 8081.
 
 ====================================================================
 NotesApp Class 9 injection replay (flaws #8 and #9)

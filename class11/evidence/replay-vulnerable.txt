@@ -1,0 +1,20 @@
+# Class 11 replay against the pre-fix revision (14c0ca0), fresh seed database
+# Recorded: 2026-11-19 09:28:03 Europe/Paris
+
+====================================================================
+NotesApp Class 11 CSRF replay (flaw #11)
+target : http://localhost:8082
+expect : vulnerable build
+====================================================================
+
+  MATCH  teacher login (prof.turing)                          observed True  expected True
+  MATCH  forged POST (cookie only) is accepted                observed True  expected True
+  MATCH  teacher page prints a CSRF token                     observed False expected False
+  MATCH  real form POST with token is saved                   observed True  expected True
+  MATCH  admin login (admin)                                  observed True  expected True
+  MATCH  admin page stamps every POST form                    observed False expected False
+  MATCH  admin ping without token is refused                  observed False expected False
+
+VERDICT: matches the expected behaviour for the vulnerable build
+
+[exit 0]

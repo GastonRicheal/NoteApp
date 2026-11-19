@@ -22,17 +22,19 @@ jobs:
           python3 scripts/generate_jwt_key.py
       - name: Build and start the course app
         run: docker compose up -d --build --wait --wait-timeout 90
-      - name: Verify health and replay the Class 6, Class 8 and Class 9 attacks
+      - name: Verify health and replay the Class 6, 8, 9, 10 and 11 attacks
         run: |
           curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://localhost:8080/healthz
           # These replay the two Class 6 forgeries, the Class 8 cross-account
-          # read and the Class 9 SQL and command injections against the running
-          # app. Each exits non-zero unless every observed status matches the
-          # repaired build, so a regression in a verifier or in an input handler
-          # fails the build.
+          # read, the Class 9 SQL and command injections, the Class 10 stored XSS
+          # and the Class 11 CSRF. Each exits non-zero unless every observed
+          # status matches the repaired build, so a regression in a verifier or
+          # in an input handler fails the build.
           python3 class06/replay/attack.py --base http://localhost:8080 --expect fixed
           python3 class08/replay/permissions.py --base http://localhost:8080 --expect fixed
           python3 class09/replay/injection.py --base http://localhost:8080 --expect fixed
+          python3 class10/replay/xss.py --base http://localhost:8080 --expect fixed
+          python3 class11/replay/csrf.py --base http://localhost:8080 --expect fixed
       - name: Run coursework regression tests
         run: |
           docker compose exec -T -e NOTESAPP_TEST_DB=1 web python -m unittest discover -s tests -v

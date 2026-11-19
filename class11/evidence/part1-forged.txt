@@ -1,0 +1,10 @@
+== Class 11 / Part 1: POST /grades with only a cookie (pre-fix) ==
+Recorded: 2026-11-19 09:16:59 Europe/Paris ; base: http://localhost:8081
+
+teacher login prof.turing/teach123 -> HTTP 302
+$ curl -s -b teacher.jar -H "Origin: http://evil.example" -d "note_id=10&grade=20&comment=Perfect work." .../grades
+forged request -> HTTP 302 (302 = accepted)
+eve login -> HTTP 302
+eve dashboard row 10: 10 Mathematics 20.0 Perfect work. 9 Physics 10.4 Should ask more questions. Grade detail (API) Look up a single grade by its id. <input type
+eve dashboard contains 20.0 -> True
+eve dashboard contains 'Perfect work.' -> True

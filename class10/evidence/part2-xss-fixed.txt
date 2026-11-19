@@ -1,0 +1,23 @@
+== Class 10 / Part 2: the same comment after the template fix ==
+Recorded: 2026-11-19 09:16:26 Europe/Paris ; base: http://localhost:8081
+Change: dashboard.html and teacher.html, {% autoescape false %} wrapper removed
+
+teacher login: HTTP 302
+alice login: HTTP 302
+alice GET /dashboard: length 1823 bytes
+contains live <script>alert('XSS by Eve')</script> -> False
+contains escaped &lt;script&gt;alert(&#39;XSS by Eve&#39;)&lt;/script&gt; -> True
+teacher page: live script -> False ; escaped script -> True
+page context: ...Mathematics</td>         <td>16.2</td>                  <td>&lt;script&gt;alert(&#39;XSS by Eve&#39;)&lt;/script&gt;</td>       </tr>            </tbody> ...
+
+== Part 4: normal text with < and & must still display ==
+teacher POST /grades comment=[score < 10 on part 1 & 2, see me & retry] -> HTTP 302
+alice dashboard contains escaped normal text -> True
+alice dashboard contains an unescaped '<' from the comment -> False
+page context: ...     <td>11.0</td>                  <td>score &lt; 10 on part 1 &amp; 2, see me &amp; retry</td>       </tr>     ...
+
+== Part 3 (re-post after both fixes; POST now carries the Class 11 token) ==
+teacher login -> HTTP 302
+re-post exact payload -> HTTP 302 ; token length 43
+alice GET /dashboard -> live <script> present: False ; escaped form present: True
+teacher GET /teacher -> live <script> present: False ; escaped form present: True

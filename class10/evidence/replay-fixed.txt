@@ -1,0 +1,21 @@
+# Class 10 replay against the fixed build (XSS escaping restored)
+# Recorded: 2026-11-19 09:26:39 Europe/Paris
+
+====================================================================
+NotesApp Class 10 stored XSS replay (flaw #10)
+target : http://localhost:8081
+expect : fixed build
+====================================================================
+
+  MATCH  teacher login (prof.turing)                  observed True  expected True
+  MATCH  teacher page prints a CSRF token             observed True  expected True
+  MATCH  teacher stores the script comment            observed True  expected True
+  MATCH  alice login                                  observed True  expected True
+  MATCH  alice page carries live <script>             observed False expected False
+  MATCH  alice page shows the escaped script          observed True  expected True
+  MATCH  teacher stores normal text with < and &      observed True  expected True
+  MATCH  normal text is escaped, not markup           observed True  expected True
+
+VERDICT: matches the expected behaviour for the fixed build
+
+[exit 0]

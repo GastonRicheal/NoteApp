@@ -1,0 +1,21 @@
+# Class 10 replay against the pre-fix revision (14c0ca0), fresh seed database
+# Recorded: 2026-11-19 09:28:02 Europe/Paris
+
+====================================================================
+NotesApp Class 10 stored XSS replay (flaw #10)
+target : http://localhost:8082
+expect : vulnerable build
+====================================================================
+
+  MATCH  teacher login (prof.turing)                  observed True  expected True
+  MATCH  teacher page prints a CSRF token             observed False expected False
+  MATCH  teacher stores the script comment            observed True  expected True
+  MATCH  alice login                                  observed True  expected True
+  MATCH  alice page carries live <script>             observed True  expected True
+  MATCH  alice page shows the escaped script          observed False expected False
+  MATCH  teacher stores normal text with < and &      observed True  expected True
+  MATCH  normal text is escaped, not markup           observed False expected False
+
+VERDICT: matches the expected behaviour for the vulnerable build
+
+[exit 0]

@@ -78,6 +78,15 @@ class PostgresAppTestCase(unittest.TestCase):
             session.clear()
             session.update(role=role, user_id=user_id, username=username)
 
+    def csrf(self):
+        """Return this client's CSRF token, creating one as a real page would."""
+        with self.client.session_transaction() as session:
+            token = session.get("csrf")
+            if token is None:
+                token = uuid.uuid4().hex
+                session["csrf"] = token
+            return token
+
     def stored_rows(self):
         with closing(self.connect_isolated()) as conn, conn.cursor() as cur:
             cur.execute("SELECT id, grade, comment FROM notes ORDER BY id")
@@ -93,6 +102,7 @@ class AppCommentTests(PostgresAppTestCase):
         comment = "课后作业评语：Très bien!"
         response = self.client.post("/grades", data={
             "student_id": "6", "class_id": "1", "grade": "15.5", "comment": comment,
+            "csrf_token": self.csrf(),
         }, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn(comment.encode("utf-8"), response.data)
@@ -117,6 +127,7 @@ class AppCommentTests(PostgresAppTestCase):
         for _ in range(2):
             response = self.client.post("/grades", data={
                 "note_id": "1", "grade": "16", "comment": "Updated comment",
+                "csrf_token": self.csrf(),
             })
             self.assertEqual(response.status_code, 302)
             value = self.stored_rows()[0]["comment"]
@@ -130,6 +141,7 @@ class AppCommentTests(PostgresAppTestCase):
             with self.assertRaises(RuntimeError):
                 self.client.post("/grades", data={
                     "student_id": "6", "class_id": "1", "grade": "15", "comment": "new",
+                    "csrf_token": self.csrf(),
                 })
         self.assertEqual(self.stored_rows(), before)
 

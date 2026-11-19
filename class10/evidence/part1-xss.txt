@@ -1,0 +1,13 @@
+== Class 10 / Part 1: stored XSS in a grade comment (pre-fix HEAD) ==
+Recorded: 2026-11-19 09:14:02 Europe/Paris ; base: http://localhost:8081
+
+teacher login prof.turing/teach123: HTTP 302
+POST /grades note_id=1 comment=<script>alert('XSS by Eve')</script> -> HTTP 302
+
+alice login: HTTP 302
+alice GET /dashboard: length 1803 bytes
+contains live <script>alert('XSS by Eve')</script> -> True
+contains escaped &lt;script&gt; -> False
+page context: ...>1</td>         <td>Mathematics</td>         <td>16.2</td>                  <td><script>alert('XSS by Eve')</script></td>       </tr>            </tbody>   </table>    </div>  <div class="card">  ...
+
+teacher page also carries the live script -> True

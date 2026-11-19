@@ -5,6 +5,7 @@
   <p>Upload a downloaded grades CSV to check whether its contents still match this server's HMAC.</p>
   <p>The file is checked without importing or changing any grades. Maximum file size: 5 MiB.</p>
   <form method="post" enctype="multipart/form-data" action="{{ url_for('verify_export') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label for="export-file">Grades export</label>
     <input id="export-file" type="file" name="file" accept=".csv,text/csv" required>
     <p><button type="submit">Verify file</button></p>

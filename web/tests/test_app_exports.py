@@ -17,7 +17,9 @@ class AppExportTests(PostgresAppTestCase):
         self.addCleanup(patcher.stop)
 
     def upload(self, value, filename="grades_export.csv"):
-        return self.client.post("/verify-export", data={"file": (io.BytesIO(value), filename)},
+        return self.client.post("/verify-export",
+                                data={"file": (io.BytesIO(value), filename),
+                                      "csrf_token": self.csrf()},
                                 content_type="multipart/form-data")
 
     def test_export_body_contains_decrypted_comments_and_a_valid_final_hmac(self):
@@ -75,7 +77,8 @@ class AppExportTests(PostgresAppTestCase):
         self.assertIn(b'multipart/form-data', page.data)
         self.assertNotIn(b"CHECK PASSED", page.data)
         self.assertNotIn(b"CHECK FAILED", page.data)
-        self.assertEqual(self.client.post("/verify-export", data={}).status_code, 400)
+        self.assertEqual(self.client.post("/verify-export",
+                                          data={"csrf_token": self.csrf()}).status_code, 400)
         self.assertEqual(self.upload(b"", "").status_code, 400)
 
     def test_export_and_verification_require_a_teacher_session(self):
@@ -95,7 +98,8 @@ class AppExportTests(PostgresAppTestCase):
             self.assertEqual(self.client.get("/export.csv").status_code, 413)
             self.assertEqual(self.upload(downloaded).status_code, 413)
             response = self.client.post("/verify-export", data=b"x"*(64*1024+33),
-                                        content_type="application/octet-stream")
+                                        content_type="application/octet-stream",
+                                        headers={"X-CSRF-Token": self.csrf()})
             self.assertEqual(response.status_code, 413)
 
     def test_ciphertext_tampering_is_rejected_before_any_export_can_be_signed(self):

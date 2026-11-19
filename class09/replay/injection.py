@@ -76,8 +76,21 @@ def _is_admin(opener, base):
     return _request(opener, f"{base}/admin")[0] == 200
 
 
+def _csrf_token(html):
+    """Return the hidden token a real form prints, or None on pre-Class-11 builds."""
+    match = re.search(r'name="csrf_token" value="([^"]+)"', html)
+    return match.group(1) if match else None
+
+
 def _ping(opener, base, host):
-    status, body = _request(opener, f"{base}/admin/ping", {"host": host})
+    # Class 11 added a per-session CSRF token. Pre-fix builds ignore the extra
+    # field, so send it whenever the page prints one and both modes keep working.
+    page = _request(opener, f"{base}/admin")[1]
+    data = {"host": host}
+    token = _csrf_token(page)
+    if token:
+        data["csrf_token"] = token
+    status, body = _request(opener, f"{base}/admin/ping", data)
     match = re.search(r"(?s)<pre>(.*?)</pre>", body)
     text = match.group(1) if match else ""
     return status, text.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")

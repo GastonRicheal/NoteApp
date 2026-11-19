@@ -1,0 +1,20 @@
+# Class 11 replay against the fixed build (per-session CSRF tokens)
+# Recorded: 2026-11-19 09:26:50 Europe/Paris
+
+====================================================================
+NotesApp Class 11 CSRF replay (flaw #11)
+target : http://localhost:8081
+expect : fixed build
+====================================================================
+
+  MATCH  teacher login (prof.turing)                          observed True  expected True
+  MATCH  forged POST (cookie only) is accepted                observed False expected False
+  MATCH  teacher page prints a CSRF token                     observed True  expected True
+  MATCH  real form POST with token is saved                   observed True  expected True
+  MATCH  admin login (admin)                                  observed True  expected True
+  MATCH  admin page stamps every POST form                    observed True  expected True
+  MATCH  admin ping without token is refused                  observed True  expected True
+
+VERDICT: matches the expected behaviour for the fixed build
+
+[exit 0]

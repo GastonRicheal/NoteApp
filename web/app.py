@@ -11,6 +11,7 @@ import hmac
 import time
 import base64
 import re
+import secrets
 import subprocess
 from pathlib import Path
 
@@ -58,6 +59,36 @@ ph = PasswordHasher()
 # Flask cookies can also authenticate API calls. Use a distinct signing key
 # derived from the provisioned secret rather than a public cookie key.
 app.secret_key = hmac.digest(JWT_KEY, b"NotesApp Flask session key v1", "sha256")
+
+# Defence in depth: the browser keeps the session cookie off most cross-site POSTs.
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
+
+# --- CSRF protection (flaw #11) ----------------------------------------------
+def csrf_token():
+    """One random secret per session. Our own forms print it; other sites cannot read it."""
+    if "csrf" not in session:
+        session["csrf"] = secrets.token_urlsafe(32)
+    return session["csrf"]
+
+
+app.jinja_env.globals["csrf_token"] = csrf_token
+
+
+@app.before_request
+def check_csrf():
+    """Every state-changing POST must carry the session's token.
+
+    The hidden form field is what the browser forms use. A custom header is
+    accepted as well so command-line clients can still drive the app; a
+    cross-site page cannot set that header without a CORS preflight.
+    """
+    if request.method == "POST" and request.endpoint != "login":
+        expected = session.get("csrf")
+        sent = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token", "")
+        if (not expected
+                or not hmac.compare_digest(sent.encode("utf-8"), expected.encode("utf-8"))):
+            abort(400, "CSRF token missing or wrong")
 
 
 def is_argon2_hash(value: str) -> bool:
@@ -304,7 +335,7 @@ def teacher():
 
 @app.route("/grades", methods=["POST"])
 def grades():
-    # Flaw #11: no CSRF token checked on this state-changing POST.
+    # Flaw #11 fixed: check_csrf() validates the token for every POST.
     if not login_required("teacher"):
         return redirect(url_for("login"))
     note_id = request.form.get("note_id", "").strip()
@@ -431,7 +462,7 @@ def admin():
 
 @app.route("/admin/ping", methods=["POST"])
 def admin_ping():
-    # Flaw #11: no CSRF token (handled in the next class).
+    # The CSRF token is validated by check_csrf() before this route runs.
     if not login_required("admin"):
         return redirect(url_for("login"))
     host = request.form.get("host", "").strip()

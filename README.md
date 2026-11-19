@@ -19,6 +19,10 @@ This fork contains the following coursework:
 - **Class 8:** server-side note ownership checks and access regressions.
 - **Class 9:** parameterised login and an argument-list ping, closing the SQL and command
   injection holes, with a replay harness that fails CI if either returns.
+- **Class 10:** default template escaping restored, closing the stored-XSS hole in grade comments,
+  with a browser-verified trap and a replay harness.
+- **Class 11:** per-session CSRF tokens on every state-changing POST, closing the forged-request
+  hole, with a replay harness and updated command-line clients.
 
 This is a deliberately vulnerable teaching application. Other planted course
 flaws remain; the added controls do not make it suitable for a real deployment.
@@ -34,6 +38,8 @@ flaws remain; the added controls do not make it suitable for a real deployment.
 - [Class 7 login fix and regression evidence](class07/LOGIN_FIX.md)
 - [Class 8 grade access fix and regression evidence](class08/ACCESS_FIX.md)
 - [Class 9 injection fix and replay evidence](class09/INJECTION_FIX.md)
+- [Class 10 stored XSS fix and browser evidence](class10/STORED_XSS_FIX.md)
+- [Class 11 CSRF fix and replay evidence](class11/CSRF_FIX.md)
 - [Replay harness and reproduction steps](class06/replay/README.md)
 
 Project 1 is an explicitly dated 9 October 2026 analysis. Its code fingerprints
